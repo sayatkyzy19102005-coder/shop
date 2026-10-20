@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VESTA ATELIER — Интернет-магазин современной одежды, обуви и аксессуаров</title>
+  <meta name="description" content="Премиальный интернет-магазин одежды VESTA. Архитектурный крой, капсульные коллекции, выбор точного размера и цвета, отслеживание доставки и личный кабинет.">
+  <meta name="keywords" content="VESTA, одежда, магазин одежды, тренч, пиджак oversize, кроссовки, аксессуары, Алматы, Казахстан">
+  <meta property="og:title" content="VESTA ATELIER — Интернет-магазин одежды">
+  <meta property="og:description" content="Минималистичная одежда для тех, кто ценит стиль, качество тканей и комфорт.">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+  <!-- Баннер отсутствия интернет-соединения -->
+  <div id="offlineBanner" class="offline-banner" role="alert">
+    ⚡ Отсутствует подключение к интернету. Вы просматриваете кэшированные данные магазина.
+  </div>
+
+  <!-- Верхняя панель статуса Firebase и Режима симуляции для разработчика -->
+  <div class="dev-status-bar" aria-label="Статус базы данных и симулятора оплаты">
+    <div class="dev-status-left">
+      <span id="firebaseModePill" class="status-pill demo">Проверка Firebase...</span>
+      <span id="firebaseModeNote" style="color: rgba(255,255,255,0.8);"></span>
+    </div>
+    <div class="dev-status-right">
+      <label for="devSimScenarioSelect" style="font-size: 11px; color: rgba(255,255,255,0.8);">Режим симуляции банка:</label>
+      <select id="devSimScenarioSelect" class="dev-btn" aria-label="Сценарий симуляции оплаты">
+        <option value="paid">✅ Оплата успешна (paid)</option>
+        <option value="insufficient_funds">⚠️ Недостаточно средств</option>
+        <option value="declined">🚫 Банк отклонил операцию</option>
+        <option value="error">🔌 Ошибка соединения</option>
+        <option value="pending">⏳ Проверка платежа (pending)</option>
+      </select>
+      <button type="button" id="devOpenSellerBtn" class="dev-btn" title="Открыть маршрут /seller">Панель продавца (/seller)</button>
+    </div>
+  </div>
+
+  <!-- ШАПКА МАГАЗИНА -->
+  <header>
+    <div class="header-main">
+      <div class="logo" id="logoHomeBtn" tabindex="0" role="button" aria-label="На главную VESTA">
+        VESTA <span class="logo-sub">ATELIER</span>
+      </div>
+
+      <div class="search-wrap" role="search">
+        <div class="search-input-box">
+          <input
+            type="search"
+            id="searchInput"
+            placeholder="Поиск по названию, бренду, категории или ткани..."
+            aria-label="Поиск товаров в каталоге"
+            autocomplete="off"
+          >
+        </div>
+        <div id="searchSuggestions" class="search-suggestions" role="listbox" aria-label="Подсказки поиска"></div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" id="headerSellerBtn" class="seller-switch-btn" style="display: none;">
+          🛡 Кабинет продавца
+        </button>
+
+        <button type="button" id="headerCompareBtn" class="icon-btn" title="Сравнение товаров" aria-label="Сравнение товаров">
+          ⇄ <span id="compareCount" class="badge-counter">0</span>
+        </button>
+
+        <button type="button" id="headerFavBtn" class="icon-btn" title="Избранное" aria-label="Избранное">
+          ♡ <span id="favCount" class="badge-counter">0</span>
+        </button>
+
+        <button type="button" id="headerCartBtn" class="icon-btn" title="Корзина" aria-label="Корзина">
+          🛒 <span id="cartCount" class="badge-counter">0</span>
+        </button>
+
+        <button type="button" id="headerAccountBtn" class="icon-btn" title="Личный кабинет" aria-label="Личный кабинет">
+          👤 <span id="headerUserLabel">Войти</span>
+        </button>
+
+        <button type="button" id="headerThemeBtn" class="icon-btn" title="Переключить тему (Светлая / Тёмная)" aria-label="Переключить тему">
+          ◐
+        </button>
+      </div>
+    </div>
+
+    <nav class="header-nav" aria-label="Основная навигация по магазину">
+      <div class="nav-links">
+        <button type="button" class="top-nav-cat-btn" data-cat="all" data-tag="all">Все модели</button>
+        <button type="button" class="top-nav-cat-btn" data-cat="all" data-tag="new">Новинки</button>
+        <button type="button" class="top-nav-cat-btn" data-cat="all" data-tag="bestseller">Хиты продаж</button>
+        <button type="button" class="top-nav-cat-btn" data-cat="Одежда" data-tag="all">Одежда</button>
+        <button type="button" class="top-nav-cat-btn" data-cat="Обувь" data-tag="all">Обувь</button>
+        <button type="button" class="top-nav-cat-btn" data-cat="Аксессуары" data-tag="all">Аксессуары</button>
+        <button type="button" class="top-nav-cat-btn sale-tab" data-cat="all" data-tag="sale">SALE · Скидки</button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ======================================================================
+       ИНТЕРФЕЙС ПОКУПАТЕЛЯ (ВИТРИНА)
+       ====================================================================== -->
+  <main id="buyerWorkspace" class="container">
+
+    <!-- ГЛАВНЫЙ БАННЕР -->
+    <section class="hero" aria-label="Новая осенне-зимняя коллекция VESTA">
+      <div class="hero-content">
+        <span class="hero-kicker">Capsule Collection · Autumn / Winter</span>
+        <h1>Архитектура чистых линий</h1>
+        <p>
+          Минималистичный гардероб из шерсти мериноса, монгольского кашемира и плотного органического хлопка. Создан для тех, кто ценит выверенную посадку и долговечность.
+        </p>
+        <div class="hero-actions">
+          <button type="button" class="primary-btn" id="heroExploreBtn">Смотреть каталог</button>
+          <button type="button" class="secondary-btn" id="heroLookbookBtn">Собрать готовый образ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ПРЕИМУЩЕСТВА МАГАЗИНА -->
+    <section class="features-strip" aria-label="Преимущества покупки в VESTA">
+      <div class="feature-card">
+        <h4>✦ Натуральные ткани</h4>
+        <p>Шерсть мериноса, кашемир, итальянский габардин и гладкая телячья кожа с контролем качества швов.</p>
+      </div>
+      <div class="feature-card">
+        <h4>🚚 Прозрачная логистика</h4>
+        <p>12-этапная шкала отслеживания заказа в личном кабинете, бережная доставка в кофре и примерка.</p>
+      </div>
+      <div class="feature-card">
+        <h4>📐 Точный подбор посадки</h4>
+        <p>Актуальный учёт остатков по каждому размеру и цвету с защитой от пересечения заказов.</p>
+      </div>
+      <div class="feature-card">
+        <h4>↺ Лёгкий возврат 14 дней</h4>
+        <p>Простая отмена заказа до отгрузки и быстрый возврат товара надлежащего качества.</p>
+      </div>
+    </section>
+
+    <!-- КАТЕГОРИИ -->
+    <section aria-labelledby="categoriesHeading">
+      <div class="section-header">
+        <div>
+          <h2 id="categoriesHeading">Категории коллекций</h2>
+          <p>Выберите направление для фильтрации каталога</p>
+        </div>
+      </div>
+      <div id="categoriesGrid" class="categories-grid"></div>
+    </section>
+
+    <!-- ВИТРИНА: НОВИНКИ / ХИТЫ ПРОДАЖ / СКИДКИ -->
+    <section aria-labelledby="highlightsHeading">
+      <div class="section-header">
+        <div>
+          <h2 id="highlightsHeading">Избранные капсулы сезона</h2>
+          <p>Актуальные поступления, бестселлеры и специальные предложения</p>
+        </div>
+        <div class="option-pills">
+          <button type="button" class="pill-btn curated-tab-btn selected" data-tab="new">Новинки</button>
+          <button type="button" class="pill-btn curated-tab-btn" data-tab="bestseller">Хиты продаж</button>
+          <button type="button" class="pill-btn curated-tab-btn" data-tab="sale">Распродажа</button>
+        </div>
+      </div>
+      <div id="curatedHighlightsGrid" class="products-grid" data-tab="new"></div>
+    </section>
+
+    <!-- ОСНОВНОЙ КАТАЛОГ С РАСШИРЕННЫМИ ФИЛЬТРАМИ И СОРТИРОВКОЙ -->
+    <section id="catalogSection" aria-labelledby="catalogHeading">
+      <div class="section-header">
+        <div>
+          <h2 id="catalogHeading">Полный каталог VESTA</h2>
+          <p id="catalogCountLabel">Загрузка моделей...</p>
+        </div>
+      </div>
+
+      <div class="filters-panel" aria-label="Фильтры и сортировка каталога">
+        <div class="filters-row">
+          <select id="categoryFilter" aria-label="Фильтр по категории">
+            <option value="all">Все категории</option>
+          </select>
+
+          <select id="sizeFilter" aria-label="Фильтр по размеру">
+            <option value="all">Все размеры</option>
+            <option value="XS">XS</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="36">36</option>
+            <option value="37">37</option>
+            <option value="38">38</option>
+            <option value="39">39</option>
+            <option value="40">40</option>
+            <option value="ONE SIZE">ONE SIZE</option>
+          </select>
+
+          <select id="colorFilter" aria-label="Фильтр по цвету">
+            <option value="all">Все цвета</option>
+            <option value="Чёрный">Чёрный</option>
+            <option value="Белый">Белый</option>
+            <option value="Бежевый">Бежевый</option>
+            <option value="Графит">Графит</option>
+            <option value="Коричневый">Коричневый</option>
+          </select>
+
+          <select id="brandFilter" aria-label="Фильтр по бренду">
+            <option value="all">Все бренды</option>
+            <option value="VESTA">VESTA</option>
+            <option value="MONO">MONO</option>
+            <option value="URBAN">URBAN</option>
+            <option value="NOVA">NOVA</option>
+          </select>
+
+          <select id="seasonFilter" aria-label="Фильтр по сезону">
+            <option value="all">Все сезоны</option>
+            <option value="Весна">Весна</option>
+            <option value="Лето">Лето</option>
+            <option value="Осень">Осень</option>
+            <option value="Зима">Зима</option>
+          </select>
+
+          <select id="sortFilter" aria-label="Сортировка товаров">
+            <option value="new">Сначала новинки (по дате)</option>
+            <option value="priceAsc">Цена: по возрастанию ↑</option>
+            <option value="priceDesc">Цена: по убыванию ↓</option>
+            <option value="rating">По популярности и рейтингу ★</option>
+            <option value="discount">По размеру скидки %</option>
+          </select>
+        </div>
+
+        <div class="filters-meta">
+          <div style="display: flex; align-items: center; gap: 18px; flex-wrap: wrap;">
+            <label for="priceRangeFilter" style="display: flex; align-items: center; gap: 10px;">
+              <span>Цена: <b id="priceRangeValue">до 100 000 ₸</b></span>
+              <input type="range" id="priceRangeFilter" min="15000" max="100000" step="1000" value="100000">
+            </label>
+
+            <label class="checkbox-label">
+              <input type="checkbox" id="inStockFilter"> Только в наличии на складе
+            </label>
+          </div>
+
+          <button type="button" id="resetFiltersBtn" class="secondary-btn" style="padding: 6px 14px; font-size: 12px;">
+            Сбросить фильтры
+          </button>
+        </div>
+      </div>
+
+      <div id="catalogProductsGrid" class="products-grid"></div>
+    </section>
+
+    <!-- КОМПЛЕКТЫ «СОБЕРИ ОБРАЗ» -->
+    <section id="lookbookSection" aria-labelledby="lookbookHeading">
+      <div class="section-header">
+        <div>
+          <h2 id="lookbookHeading">Комплекты «Собери образ»</h2>
+          <p>Готовые сочетания от стилистов VESTA — добавьте весь образ в корзину одним нажатием</p>
+        </div>
+      </div>
+      <div id="lookbooksGrid" class="lookbooks-grid"></div>
+    </section>
+
+    <!-- НЕДАВНО ПРОСМОТРЕННЫЕ ТОВАРЫ -->
+    <section id="recentlyViewedSection" style="display: none;" aria-labelledby="recentHeading">
+      <div class="section-header">
+        <div>
+          <h2 id="recentHeading">Вы недавно смотрели</h2>
+          <p>Модели, которые вы открывали в текущей сессии</p>
+        </div>
+      </div>
+      <div id="recentlyViewedGrid" class="products-grid"></div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================================
+       ЗАЩИЩЁННЫЙ ИНТЕРФЕЙС ПРОДАВЦА (/seller)
+       ====================================================================== -->
+  <section id="sellerWorkspace" class="seller-workspace" aria-label="Панель продавца VESTA"></section>
+
+  <!-- ======================================================================
+       МОДАЛЬНЫЕ ОКНА
+       ====================================================================== -->
+
+  <!-- Карточка товара -->
+  <div class="modal" id="productModal" role="dialog" aria-modal="true" aria-label="Подробная информация о товаре">
+    <div class="modal-box" id="productDetailBox"></div>
+  </div>
+
+  <!-- Корзина -->
+  <div class="modal" id="cartModal" role="dialog" aria-modal="true" aria-label="Корзина покупок">
+    <div class="modal-box" style="max-width: 780px;">
+      <button type="button" class="modal-close modal-close-trigger" aria-label="Закрыть корзину">×</button>
+      <h2 style="font-family: var(--font-serif); font-size: 32px; margin-bottom: 16px;">🛒 Корзина</h2>
+      <div id="cartModalContent"></div>
+    </div>
+  </div>
+
+  <!-- Пошаговое оформление заказа -->
+  <div class="modal" id="checkoutModal" role="dialog" aria-modal="true" aria-label="Оформление заказа">
+    <div class="modal-box" style="max-width: 680px;">
+      <button type="button" class="modal-close modal-close-trigger" aria-label="Закрыть оформление заказа">×</button>
+      <h2 style="font-family: var(--font-serif); font-size: 32px; margin-bottom: 16px;">Оформление заказа</h2>
+      <div id="checkoutModalContent"></div>
+    </div>
+  </div>
+
+  <!-- Симуляция банковской оплаты -->
+  <div class="modal" id="bankPaymentModal" role="dialog" aria-modal="true" aria-label="Симуляция банковской оплаты">
+    <div class="modal-box narrow" id="bankPaymentModalContent"></div>
+  </div>
+
+  <!-- Вход / Регистрация -->
+  <div class="modal" id="authModal" role="dialog" aria-modal="true" aria-label="Авторизация">
+    <div class="modal-box narrow">
+      <button type="button" class="modal-close modal-close-trigger" aria-label="Закрыть">×</button>
+      <div id="authModalContent"></div>
+    </div>
+  </div>
+
+  <!-- Личный кабинет покупателя -->
+  <div class="modal" id="accountModal" role="dialog" aria-modal="true" aria-label="Личный кабинет">
+    <div class="modal-box">
+      <button type="button" class="modal-close modal-close-trigger" aria-label="Закрыть">×</button>
+      <h2 style="font-family: var(--font-serif); font-size: 32px; margin-bottom: 18px;">👤 Личный кабинет</h2>
+      <div class="seller-layout">
+        <aside class="seller-sidebar">
+          <button type="button" class="seller-nav-btn acc-tab-btn" data-sec="profile">Мой профиль и адреса</button>
+          <button type="button" class="seller-nav-btn acc-tab-btn" data-sec="orders">🧾 История заказов и возвраты</button>
+          <button type="button" class="seller-nav-btn acc-tab-btn" data-sec="tracking">📦 Отслеживание доставки</button>
+          <button type="button" class="seller-nav-btn acc-tab-btn" data-sec="favorites">❤️ Избранные модели</button>
+        </aside>
+        <div id="accountContentBox"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Избранное -->
+  <div class="modal" id="favoritesModal" role="dialog" aria-modal="true" aria-label="Избранные товары">
+    <div class="modal-box">
+      <button type="button" class="modal-close modal-close-trigger" aria-label="Закрыть">×</button>
+      <h2 style="font-family: var(--font-serif); font-size: 32px; margin-bottom: 18px;">❤️ Избранное</h2>
+      <div id="favoritesGridBox" class="products-grid"></div>
+    </div>
+  </div>
+
+  <!-- Сравнение моделей -->
+  <div class="modal" id="compareModal" role="dialog" aria-modal="true" aria-label="Сравнение товаров">
+    <div class="modal-box">
+      <button type="button" class="modal-close modal-close-trigger" aria-label="Закрыть">×</button>
+      <h2 style="font-family: var(--font-serif); font-size: 32px; margin-bottom: 18px;">⇄ Сравнение моделей</h2>
+      <div id="compareModalContent"></div>
+    </div>
+  </div>
+
+  <!-- Информационные страницы (Доставка, Оплата, Возврат, FAQ, Политика) -->
+  <div class="modal" id="infoModal" role="dialog" aria-modal="true" aria-label="Информация магазина">
+    <div class="modal-box narrow">
+      <button type="button" class="modal-close modal-close-trigger" aria-label="Закрыть">×</button>
+      <div id="infoModalContent"></div>
+    </div>
+  </div>
+
+  <!-- Контейнер уведомлений -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- МОБИЛЬНАЯ НИЖНЯЯ НАВИГАЦИЯ -->
+  <nav class="mobile-bottom-nav" aria-label="Мобильная навигация">
+    <button type="button" id="mobNavHome">
+      <span>🏛</span>
+      <span>Главная</span>
+    </button>
+    <button type="button" id="mobNavCatalog">
+      <span>🧥</span>
+      <span>Каталог</span>
+    </button>
+    <button type="button" id="mobNavCart">
+      <span>🛒 (<b id="mobileCartCount">0</b>)</span>
+      <span>Корзина</span>
+    </button>
+    <button type="button" id="mobNavFav">
+      <span>♡</span>
+      <span>Избранное</span>
+    </button>
+    <button type="button" id="mobNavAccount">
+      <span>👤</span>
+      <span>Профиль</span>
+    </button>
+  </nav>
+
+  <!-- ПОДВАЛ САЙТА -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div class="logo" style="margin-bottom: 10px;">VESTA <span class="logo-sub">ATELIER</span></div>
+        <p style="font-size: 13px; color: var(--text-muted); max-width: 340px; margin-bottom: 14px;">
+          Современная одежда архитектурного кроя. Разработано с использованием транзакционной модели Cloud Firestore и разделением ролей покупателя и продавца.
+        </p>
+        <p style="font-size: 12px; color: var(--text-muted);">
+          Промокод на первый заказ: <code>VESTA10</code> (−10% от 15 000 ₸)
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Навигация</h4>
+        <ul>
+          <li><button type="button" class="top-nav-cat-btn" data-cat="Одежда" data-tag="all">Одежда</button></li>
+          <li><button type="button" class="top-nav-cat-btn" data-cat="Обувь" data-tag="all">Обувь</button></li>
+          <li><button type="button" class="top-nav-cat-btn" data-cat="Аксессуары" data-tag="all">Аксессуары</button></li>
+          <li><button type="button" class="top-nav-cat-btn" data-cat="all" data-tag="sale">Распродажа (Sale)</button></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Покупателям</h4>
+        <ul>
+          <li><button type="button" class="info-page-trigger" data-page="delivery">Доставка и отслеживание</button></li>
+          <li><button type="button" class="info-page-trigger" data-page="payment">Способы оплаты</button></li>
+          <li><button type="button" class="info-page-trigger" data-page="returns">Обмен и возврат</button></li>
+          <li><button type="button" class="info-page-trigger" data-page="faq">Частые вопросы (FAQ)</button></li>
+          <li><button type="button" class="info-page-trigger" data-page="privacy">Политика конфиденциальности</button></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Консьерж-сервис</h4>
+        <ul>
+          <li style="font-size: 13px; color: var(--text-muted);">Тел.: <b id="footerSupportPhone">+7 (700) 240-88-90</b></li>
+          <li style="font-size: 13px; color: var(--text-muted);">Email: <span id="footerSupportEmail">concierge@vesta-atelier.kz</span></li>
+          <li style="font-size: 13px; color: var(--text-muted);">Instagram: <span id="footerInsta">@vesta.atelier</span></li>
+          <li style="margin-top: 8px;"><a href="#/seller" style="font-size: 12px; text-decoration: underline;">Вход для сотрудников (/seller)</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

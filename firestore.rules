@@ -1,0 +1,131 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Вспомогательные функции авторизации и ролей
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Роль продавца проверяется через Custom Claims токена ИЛИ защищённое поле в профиле,
+    // которое запрещено менять клиенту.
+    function isSeller() {
+      return isSignedIn() && (
+        request.auth.token.role == 'seller' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'seller'
+      );
+    }
+
+    // 1. ПРОФИЛИ ПОЛЬЗОВАТЕЛЕЙ (users/{uid})
+    // Запрещено чтение чужих профилей и самостоятельное повышение роли до seller.
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isSeller();
+      allow create: if isOwner(uid)
+                    && request.resource.data.role == 'buyer'
+                    && request.resource.data.uid == uid;
+      allow update: if isOwner(uid)
+                    && request.resource.data.role == resource.data.role
+                    && request.resource.data.uid == resource.data.uid;
+      allow delete: if false;
+    }
+
+    // 2. ПУБЛИЧНЫЙ КАТАЛОГ ТОВАРОВ И КАТЕГОРИИ (products/{productId}, categories/{categoryId})
+    // Чтение доступно всем, создание/редактирование/удаление и изменение остатков — только подтверждённым продавцам.
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isSeller();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if isSeller();
+    }
+
+    // 3. КОРЗИНЫ ПОКУПАТЕЛЕЙ (carts/{uid})
+    match /carts/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // 4. ЗАКАЗЫ (orders/{orderId}) И ИСТОРИЯ СТАТУСОВ (statusHistory/{eventId})
+    // Покупатель видит только свои заказы, не может менять итоговую сумму (pricingSnapshot.total)
+    // или подделывать статус оплаты paid=true.
+    match /orders/{orderId} {
+      allow read: if (isSignedIn() && resource.data.uid == request.auth.uid) || isSeller();
+
+      // В рабочей среде создание заказа выполняется через Cloud Functions (Admin SDK).
+      // При прямом создании разрешаем только статус 'created' или 'awaiting_payment' и 'unpaid' / 'cod_pending'.
+      allow create: if isSignedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.paymentStatus in ['unpaid', 'cod_pending']
+                    && request.resource.data.orderStatus in ['created', 'awaiting_payment']
+                    && request.resource.data.pricingSnapshot.total > 0;
+
+      // Покупатель может только отменить свой заказ в разрешённых начальных статусах без изменения суммы и состава.
+      allow update: if isSeller() || (
+        isSignedIn()
+        && resource.data.uid == request.auth.uid
+        && resource.data.orderStatus in ['created', 'awaiting_payment', 'paid', 'accepted']
+        && request.resource.data.orderStatus == 'cancelled'
+        && request.resource.data.pricingSnapshot == resource.data.pricingSnapshot
+        && request.resource.data.paymentStatus == resource.data.paymentStatus
+        && request.resource.data.items == resource.data.items
+      );
+
+      allow delete: if false;
+
+      match /statusHistory/{eventId} {
+        allow read: if (isSignedIn() && get(/databases/$(database)/documents/orders/$(orderId)).data.uid == request.auth.uid) || isSeller();
+        allow create: if isSeller();
+        allow update, delete: if false;
+      }
+    }
+
+    // 5. ПЛАТЕЖИ (payments/{paymentId})
+    // Покупатель может читать только свои платежи. Подтверждённый статус paid записывается только доверенным сервером (Cloud Functions).
+    match /payments/{paymentId} {
+      allow read: if (isSignedIn() && resource.data.uid == request.auth.uid) || isSeller();
+      allow create, update, delete: if false; // Только через Cloud Functions / Admin SDK
+    }
+
+    // 6. ОТЗЫВЫ (reviews/{reviewId})
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5
+                    && request.resource.data.sellerReply == null;
+      allow update: if isSeller();
+      allow delete: if isSeller();
+    }
+
+    // 7. ПРОМОКОДЫ (promoCodes/{promoCodeId})
+    match /promoCodes/{promoCodeId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSeller();
+    }
+
+    // 8. ЖУРНАЛ СКЛАДА И ДЕЙСТВИЙ ПРОДАВЦА (inventoryLogs/{logId})
+    match /inventoryLogs/{logId} {
+      allow read, create: if isSeller();
+      allow update, delete: if false;
+    }
+
+    // 9. ЛИСТ ОЖИДАНИЯ РАЗМЕРОВ (stockSubscriptions/{subId})
+    match /stockSubscriptions/{subId} {
+      allow create: if true;
+      allow read, update, delete: if isSeller();
+    }
+
+    // 10. НАСТРОЙКИ МАГАЗИНА (storeSettings/{settingsId})
+    match /storeSettings/{settingsId} {
+      allow read: if true;
+      allow write: if isSeller();
+    }
+  }
+}

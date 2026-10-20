@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSeller() {
+      return request.auth != null && (
+        request.auth.token.role == 'seller' ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'seller'
+      );
+    }
+
+    function isSafeImage() {
+      return request.resource.size < 5 * 1024 * 1024
+             && request.resource.contentType.matches('image/(jpeg|png|webp|avif)');
+    }
+
+    // Изображения каталога товаров: публичное чтение, загрузка только подтверждённым продавцам
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSeller() && isSafeImage();
+    }
+
+    // Фотографии к отзывам покупателей (до 5 МБ, только безопасные форматы изображений)
+    match /reviews/{userId}/{fileName} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == userId && isSafeImage();
+      allow delete: if isSeller();
+    }
+
+    // Запрет на любые другие пути
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
