@@ -9,12 +9,12 @@
 // НЕ ИСПОЛЬЗУЙТЕ КОНФИГУРАЦИЮ ЧУЖОГО ПРОЕКТА.
 
 const firebaseConfig = {
-  apiKey: "ВСТАВЬТЕ_СВОЙ_API_KEY",
-  authDomain: "ВСТАВЬТЕ_СВОЙ_AUTH_DOMAIN",
-  projectId: "ВСТАВЬТЕ_СВОЙ_PROJECT_ID",
-  storageBucket: "ВСТАВЬТЕ_СВОЙ_STORAGE_BUCKET",
-  messagingSenderId: "ВСТАВЬТЕ_СВОЙ_MESSAGING_SENDER_ID",
-  appId: "ВСТАВЬТЕ_СВОЙ_APP_ID"
+  apiKey: "AIzaSyDW9Ji3_WkJZtkgjBA29bOLnmqp9MQl-20",
+  authDomain: "shop-bb334.firebaseapp.com",
+  projectId: "shop-bb334",
+  storageBucket: "shop-bb334.firebasestorage.app",
+  messagingSenderId: "373299481228",
+  appId: "1:373299481228:web:35bcceb401310dad2bc9a9"
   // measurementId добавляется при необходимости
 };
 
